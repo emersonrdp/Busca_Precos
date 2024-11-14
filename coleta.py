@@ -29,7 +29,7 @@ itens = []
 dados_itens_nome = []
 dados_itens_avaliacao = []
 dados_itens_link = []
-dados_itens_preco_antigo = []
+#dados_itens_preco_antigo = []
 dados_itens_preco_parcelado = []
 dados_itens_texto_preco_parcelado = []
 dados_itens_preco_avista = []
@@ -66,8 +66,8 @@ while True:
             #print('https://www.magazineluiza.com.br'+item.a.get('href'))
 
         # Coletando Preço Antigo
-        for item in soup.find_all("p", attrs={"class": "sc-dcJsrY lmAmKF sc-fyVfxW egCHto"}):
-            dados_itens_preco_antigo.append( item.text.replace('.','').replace(',','.').replace('R$\xa0','') )
+        #for item in soup.find_all("p", attrs={"class": "sc-dcJsrY lmAmKF sc-fyVfxW egCHto"}):
+        #    dados_itens_preco_antigo.append( item.text.replace('.','').replace(',','.').replace('R$\xa0','') )
             
         # Coletando Preço Parcelado
         for item in soup.find_all("p", attrs={"class": "sc-dcJsrY dpUJi sc-empnci JKjlB"}):
@@ -92,19 +92,32 @@ while True:
         break
 
 # Criando uma lista única com todos os produtos
-itens.append( list(zip(dados_itens_nome, dados_itens_link, dados_itens_avaliacao, dados_itens_preco_antigo, dados_itens_texto_preco_parcelado, dados_itens_preco_parcelado, dados_itens_preco_avista)) )
+itens.append( list(zip(dados_itens_nome, dados_itens_link, dados_itens_avaliacao, dados_itens_texto_preco_parcelado, dados_itens_preco_parcelado, dados_itens_preco_avista)) )
 
-item_df = pd.DataFrame(itens[0], columns=['Nome','Link','Avaliacao','Preço Antigo','Parcelas','Preço Parcelado','Preço a Vista'])
+item_df = pd.DataFrame(itens[0], columns=['Nome','Link','Avaliacao','Parcelas','Preço Parcelado','Preço a Vista'])
 
-#Alterando so campos de preço apra float
-item_df['Preço Antigo'] = item_df['Preço Antigo'].fillna(0).astype(float)
+
+####################################### TRATAMENTOS #######################################
+# Site coletado
+item_df['Site'] = 'Magazine Luiza'
+
+# Data da Coleta
+item_df['Data da Coleta'] = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
+#Alterando so campos de preço para float
+#item_df['Preço Antigo'] = item_df['Preço Antigo'].fillna(0).astype(float)
 item_df['Preço Parcelado'] = item_df['Preço Parcelado'].fillna(0).astype(float)
 item_df['Preço a Vista'] = item_df['Preço a Vista'].fillna(0).astype(float)
 
+# Corrigindo campos sem avaliação
+item_df['Avaliacao'] = item_df['Avaliacao'].str.replace('ou', '').replace('no Pix', '')
 
+################################### FIM DOS TRATAMENTOS ###################################
+
+
+# Exportando DataFrame para arquivo CSV
 item_df.to_csv('coletaMagazineLuiza.csv', sep=';', index=False, decimal=',' )
 
 #print('\n'+item_df)
 #item_df.info()
 #item_df.sort_values(by='Preço a Vista', ascending=True)
-
