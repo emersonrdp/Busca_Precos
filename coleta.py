@@ -9,6 +9,14 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import warnings 
 
+#import os
+
+# Desabilitar delegados do TensorFlow Lite
+#os.environ["TF_DELEGATE_USE"] = "0"
+#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Ocultar logs de informação e aviso do TensorFlow
+
+
 # Ignorar todos os warnings 
 warnings.filterwarnings("ignore")
 
@@ -75,9 +83,12 @@ def coleta_magazine_luiza(url):
     dados_itens_texto_preco_parcelado = []
     dados_itens_preco_avista = []
 
+    print(f'\n{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Iniciando a coleta de dados no site da Magazine Luiza')
+
     while True:
         print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Coletando os dados da página {pagina}: {url}')
         resposta = requests.get(url, headers=headers)
+        sleep(2)
         
         if (resposta.status_code == 200):
             soup = BeautifulSoup(resposta.text, 'html.parser')
@@ -163,10 +174,13 @@ def coleta_mercado_livre(url):
 
     pagina = 0
 
+    print(f'\n{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Iniciando a coleta de dados no site do Mercado Livre')
+
     while True:
         pagina += 1
         print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Coletando os dados da página {pagina}: {url}')
         resposta = requests.get(url, headers=headers)
+        sleep(2)
 
         if (resposta.status_code == 200):
             soup = BeautifulSoup(resposta.text, 'html.parser')
@@ -236,6 +250,7 @@ def coleta_mercado_livre(url):
     #item_df.info()
     #item_df.sort_values(by='Preço a Vista', ascending=True)
 
+    return item_df
 
 
 def coleta_amazon(url):
@@ -255,20 +270,19 @@ def coleta_amazon(url):
     # A Amazon retornava 503 nas tentativas de requisição da página de pesquisa de produtos.
     # Mesmo tentando algumas técnicas como colocar mais oingormações no headers ou abrir uma sessão para utilizar cookies não surtiram efeito.
     options = Options()
-    options.add_argument('--headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--disable-gpu')
-
-    options.add_experimental_option("excludeSwitches", ["enable-logging"])
-    #options.add_argument("--enable-unsafe-swiftshader")
-
+    #options.add_argument('--headless') # não abrir o navergador Chrome para realizar o webscraping (interface gráfica)
+       
     # Fazendo a requisição da página via Selenium
     #service = Service(executable_path='caminho/para/chromedriver')
     #driver = webdriver.Chrome(service=service, options=options)
     driver = webdriver.Chrome(options=options)
-
+    
+    # Definir uma espera implícita de 10 segundos
+    driver.implicitly_wait(10)
+    
     pagina = 0
 
+    print(f'\n{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Iniciando a coleta de dados no site da Amazon')
 
     while True:
         pagina += 1
@@ -276,6 +290,7 @@ def coleta_amazon(url):
 
         #driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.get(url)
+        #sleep(5)
         html = driver.page_source
 
         if (html):
@@ -330,7 +345,7 @@ def coleta_amazon(url):
             # Verifica se existe próxima página, se não existir sai do while
             #   Se o botão de próxima página estiver deaabilitado vai sair do loop (verifica pela classe de botão "Seguinte" desabilitado)
             #   Caso contrario atualizará a variável url com o link da próxima página
-            botao_proxima_pagina = soup.find("a", attrs={"class": "s-pagination-item s-pagination-next s-pagination-button s-pagination-separator"})
+            botao_proxima_pagina = soup.find("a", attrs={"class": "s-pagination-item s-pagination-next s-pagination-button s-pagination-button-accessibility s-pagination-separator"})
                 
             if soup.find("span", attrs={"class": "s-pagination-item s-pagination-next s-pagination-disabled"}):
                 print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Chegamos na ultima página. Fim da coleta de dados.')
@@ -372,3 +387,4 @@ def coleta_amazon(url):
     # Exportando DataFrame para arquivo CSV
     item_df.to_csv('coletaAmazon.csv', sep=';', index=False, decimal=',' )
 
+    return item_df
