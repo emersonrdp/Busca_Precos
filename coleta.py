@@ -9,14 +9,6 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 import warnings 
 
-#import os
-
-# Desabilitar delegados do TensorFlow Lite
-#os.environ["TF_DELEGATE_USE"] = "0"
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-#os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Ocultar logs de informação e aviso do TensorFlow
-
-
 # Ignorar todos os warnings 
 warnings.filterwarnings("ignore")
 
@@ -59,8 +51,10 @@ item_df_dict = pd.DataFrame(itemDicionario)
     """
 
 
-def coleta_magazine_luiza(url):
+def coleta_magazine_luiza(url, item_busca):
     """ Raspagem de dados - Magazine Luiza """
+
+    item_busca = item_busca.replace(' ', '+') # Substituição dos espaços de acordo com o site
 
     def proxima_pagina(pagina, item_busca):
         """Verificar se existe próxima página e retorna a requisição da próxima página"""
@@ -88,10 +82,11 @@ def coleta_magazine_luiza(url):
     while True:
         print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Coletando os dados da página {pagina}: {url}')
         resposta = requests.get(url, headers=headers)
-        sleep(2)
+        sleep(5)
         
         if (resposta.status_code == 200):
             soup = BeautifulSoup(resposta.text, 'html.parser')
+            sleep(5)
 
             # Coletando Nome e Avaliação
             for item in soup.find_all("div", attrs={"class": "sc-gQSkpc jTodsw"}):
@@ -120,12 +115,24 @@ def coleta_magazine_luiza(url):
             #   Se o botão de próxima páfina estiver deaabilitado vai sair do loop
             #   Caso contrario chamará a fução que retornará a requisição da próxima página
             botao_proxima_pagina = soup.find("button", attrs={"aria-label": "Go to next page"})
-            if botao_proxima_pagina.has_attr('disabled'):
-                print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Chegamos na ultima página. Fim da coleta de dados.')
-                break
+            # Se o boão proxima página existir chama a proximas página
+            #   Antes estava verificando se o a página estava desabilitado mas passou a dar erro pois passou a não encontrar o botão na ultima página.
+            botao_proxima_pagina = soup.find("button", attrs={"aria-label": "Go to next page"})
+            
+            #if botao_proxima_pagina.has_attr('disabled'):
+            
+            #    print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Chegamos na ultima página. Fim da coleta de dados.')
+            #    break
+            #else:
+            #    #print(f'    Chamando a próxima página: {pagina}')
+            #    pagina, url = proxima_pagina(pagina, item_busca)
+            
+            if botao_proxima_pagina:
+                pagina, url = proxima_pagina(pagina, item_busca)
             else:
                 #print(f'    Chamando a próxima página: {pagina}')
-                pagina, url = proxima_pagina(pagina, item_busca)
+                print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Chegamos na ultima página. Fim da coleta de dados.')
+                break
         else:
             print(f'{datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - Erro ao fazer requisição da página {pagina}: {resposta.status_code}')
             break
@@ -160,8 +167,10 @@ def coleta_magazine_luiza(url):
 
 
 
-def coleta_mercado_livre(url):
+def coleta_mercado_livre(url, item_busca):
     """ Raspagem de dados - Mercado Livre """
+
+    item_busca = item_busca.replace(' ', '-') # Substituição dos espaços de acordo com o site
 
     # listas que vão receber os resultados
     itens = []
@@ -253,8 +262,10 @@ def coleta_mercado_livre(url):
     return item_df
 
 
-def coleta_amazon(url):
+def coleta_amazon(url, item_busca):
     """ Raspagem de dados - Amazon """
+
+    item_busca = item_busca.replace(' ', '+') # Substituição dos espaços de acordo com o site
 
     # listas que vão receber os resultados
     itens = []
@@ -270,7 +281,7 @@ def coleta_amazon(url):
     # A Amazon retornava 503 nas tentativas de requisição da página de pesquisa de produtos.
     # Mesmo tentando algumas técnicas como colocar mais oingormações no headers ou abrir uma sessão para utilizar cookies não surtiram efeito.
     options = Options()
-    #options.add_argument('--headless') # não abrir o navergador Chrome para realizar o webscraping (interface gráfica)
+    options.add_argument('--headless') # não abrir o navergador Chrome para realizar o webscraping (interface gráfica)
        
     # Fazendo a requisição da página via Selenium
     #service = Service(executable_path='caminho/para/chromedriver')
